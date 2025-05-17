@@ -3,7 +3,7 @@ import CopyButton from './CopyButton';
 import DownloadButton from './DownloadButton';
 
 function TranscriptDisplay({ transcriptData, theme }) {
-  const [showTimestamped, setShowTimestamped] = useState(true);
+  const [showTimestamped, setShowTimestamped] = useState(false);
   const transcriptRef = useRef(null);
 
   useEffect(() => {
@@ -39,20 +39,6 @@ function TranscriptDisplay({ transcriptData, theme }) {
           <div className={`flex items-center rounded-full p-1 shadow-inner w-full sm:w-auto
             ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>
             <button
-              onClick={() => setShowTimestamped(true)}
-              className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium flex items-center flex-1 sm:flex-none justify-center
-                ${showTimestamped
-                  ? theme === 'dark'
-                    ? 'bg-gray-600 text-primary-300 shadow-sm'
-                    : 'bg-white text-primary-600 shadow-sm'
-                  : theme === 'dark'
-                    ? 'text-gray-300'
-                    : 'text-gray-600'}`}
-            >
-              <i className="fas fa-clock mr-2"></i>
-              Timestamped
-            </button>
-            <button
               onClick={() => setShowTimestamped(false)}
               className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium flex items-center flex-1 sm:flex-none justify-center
                 ${!showTimestamped
@@ -65,6 +51,20 @@ function TranscriptDisplay({ transcriptData, theme }) {
             >
               <i className="fas fa-align-left mr-2"></i>
               Plain Text
+            </button>
+            <button
+              onClick={() => setShowTimestamped(true)}
+              className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium flex items-center flex-1 sm:flex-none justify-center
+                ${showTimestamped
+                  ? theme === 'dark'
+                    ? 'bg-gray-600 text-primary-300 shadow-sm'
+                    : 'bg-white text-primary-600 shadow-sm'
+                  : theme === 'dark'
+                    ? 'text-gray-300'
+                    : 'text-gray-600'}`}
+            >
+              <i className="fas fa-clock mr-2"></i>
+              Timestamped
             </button>
           </div>
           <div className="flex gap-3 w-full sm:w-auto">
