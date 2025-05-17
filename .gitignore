@@ -1,0 +1,11 @@
+.venv/
+**/__pycache__/**
+**/node_modules/**
+venv/
+frontend/src/.cph/.App.js_a2040c20e74e3cf4df2f0b77e62d10a9.prob
+
+# Ignore all transcript files except demo ones
+backend/transcripts/*
+!backend/transcripts/neural_networks_*
+!backend/transcripts/quantum_mechanics_*
+!backend/transcripts/misunderstood_concept_*
