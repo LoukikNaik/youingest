@@ -1,5 +1,5 @@
 const config = {
-  backendUrl: 'https://youingest-production.up.railway.app'
+  backendUrl: 'http://localhost:8000'
 };
 
 export default config; 
