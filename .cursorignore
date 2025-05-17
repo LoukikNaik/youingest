@@ -1,0 +1,6 @@
+.venv/
+**/__pycache__/**
+**/transcripts/**
+**/node_modules/**
+venv/
+frontend/src/.cph/.App.js_a2040c20e74e3cf4df2f0b77e62d10a9.prob

@@ -10,6 +10,9 @@ from typing import List, Optional, Dict, Tuple
 from datetime import timedelta
 import json
 from fastapi.staticfiles import StaticFiles
+from functools import lru_cache
+import asyncio
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -28,6 +31,56 @@ app.add_middleware(
 
 app.mount("/transcripts", StaticFiles(directory="transcripts"), name="transcripts")
 
+# Add after the app initialization
+DEMO_VIDEOS = {
+    "neural_networks": {
+        "url": "https://www.youtube.com/watch?v=aircAruvnKk",
+        "title": "But what is a neural network? | Chapter 1, Deep learning",
+        "description": "3Blue1Brown's Neural Networks"
+    },
+    "quantum_mechanics": {
+        "url": "https://www.youtube.com/watch?v=7TycxwFmdB0",
+        "title": "Quantum Mechanics Explained in Ridiculously Simple Words",
+        "description": "Science ABC's Quantum Mechanics Explanation"
+    },
+    "misunderstood_concept": {
+        "url": "https://www.youtube.com/watch?v=6Af6b_wyiwI",
+        "title": "The Most Misunderstood Concept in Physics",
+        "description": "Veritasium's The Most Misunderstood Concept"
+    }
+}
+
+# Add after the app initialization
+@app.on_event("startup")
+async def startup_event():
+    """Pre-cache demo videos on startup."""
+    logger.info("Pre-caching demo videos...")
+    for video_id, video_info in DEMO_VIDEOS.items():
+        try:
+            # Check if already cached
+            transcript_file = f"transcripts/{video_id}_transcript.txt"
+            plain_transcript_file = f"transcripts/{video_id}_notimestamp.txt"
+            
+            # Only process if either file is missing
+            if not os.path.exists(transcript_file) or not os.path.exists(plain_transcript_file):
+                logger.info(f"Caching demo video: {video_info['title']}")
+                # Download and process the video
+                video_title, vtt_file = download_captions(video_info['url'])
+                transcript, speakers = parse_captions(vtt_file)
+                
+                # Save both timestamped and plain text versions
+                save_transcript_to_file(transcript, video_title, video_id)
+                
+                # Clean up VTT file
+                try:
+                    os.remove(vtt_file)
+                except Exception as e:
+                    logger.warning(f"Failed to remove temporary file {vtt_file}: {str(e)}")
+            else:
+                logger.info(f"Demo video already cached: {video_info['title']}")
+        except Exception as e:
+            logger.error(f"Error caching demo video {video_info['title']}: {str(e)}")
+
 class YouTubeURL(BaseModel):
     youtube_url: HttpUrl
 
@@ -37,6 +90,14 @@ class TranscriptResponse(BaseModel):
     chunks: List[str]
     speakers: List[str]
     transcript_file: str  # Path to the saved transcript file
+    plain_transcript: str  # Add plain transcript to response
+
+class YouTubeError(Exception):
+    """Custom exception for YouTube-related errors"""
+    def __init__(self, message, error_type="youtube_error"):
+        self.message = message
+        self.error_type = error_type
+        super().__init__(self.message)
 
 def format_timestamp(seconds: float) -> str:
     """Format seconds into HH:MM:SS format."""
@@ -57,10 +118,20 @@ def download_captions(url: str) -> tuple[str, str]:
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Extract video info and download subtitles
-            info = ydl.extract_info(url, download=True)
+            try:
+                info = ydl.extract_info(url, download=True)
+            except Exception as e:
+                if "Video unavailable" in str(e):
+                    raise YouTubeError("This video is unavailable. It might be private, deleted, or restricted.", "video_unavailable")
+                elif "Sign in to confirm your age" in str(e):
+                    raise YouTubeError("This video is age-restricted and requires sign-in to view.", "age_restricted")
+                elif "Video is private" in str(e):
+                    raise YouTubeError("This video is private and cannot be accessed.", "private_video")
+                else:
+                    raise YouTubeError(f"Could not access the video: {str(e)}", "access_error")
             
             if not info:
-                raise Exception("Failed to extract video information")
+                raise YouTubeError("Could not get video information. The video might not exist.", "no_info")
             
             video_title = info.get('title', 'Unknown Title')
             logger.info(f"Successfully extracted video title: {video_title}")
@@ -77,14 +148,29 @@ def download_captions(url: str) -> tuple[str, str]:
                         break
             
             if not os.path.exists(subtitle_file):
-                raise Exception("No subtitle file found")
+                raise YouTubeError("No subtitles found for this video. The video might not have English captions.", "no_subtitles")
             
             logger.info(f"Found subtitle file: {subtitle_file}")
             return video_title, subtitle_file
             
+    except YouTubeError as e:
+        logger.error(f"YouTube error: {str(e)}")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": e.message,
+                "error_type": e.error_type
+            }
+        )
     except Exception as e:
         logger.error(f"Error downloading captions: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "An unexpected error occurred while processing the video. Please try again later.",
+                "error_type": "server_error"
+            }
+        )
 
 def format_transcript_for_file(transcript: str, video_title: str) -> str:
     """Format transcript into a readable text format."""
@@ -99,6 +185,13 @@ def create_non_timestamp_transcript(txt_file: str, output_file: str):
     """Create a transcript without timestamps and without repeated phrases between consecutive blocks."""
     with open(txt_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
+    
+    # Extract video title from the first line
+    video_title = None
+    for line in lines:
+        if line.startswith('Transcript for:'):
+            video_title = line.replace('Transcript for:', '').strip()
+            break
     
     # Extract only the text lines (skip header and timestamps)
     text_blocks = []
@@ -133,8 +226,16 @@ def create_non_timestamp_transcript(txt_file: str, output_file: str):
         result.extend(block_words[overlap:])
         prev_words = result[-len(block_words):] if block_words else prev_words
     
+    # Format the plain text transcript with title
+    formatted_lines = []
+    if video_title:
+        formatted_lines.append(f"Plain Text Transcript for: {video_title}")
+        formatted_lines.append("=" * (len(video_title) + 25))  # Longer line for "Plain Text Transcript for:"
+        formatted_lines.append("")
+    formatted_lines.append(' '.join(result))
+    
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(' '.join(result))
+        f.write('\n'.join(formatted_lines))
 
 def save_transcript_to_file(transcript: str, video_title: str, video_id: str) -> str:
     """Save formatted transcript to a text file and also create a non-timestamped version."""
@@ -276,13 +377,33 @@ async def ingest_video(url_data: YouTubeURL):
         video_title, vtt_file = download_captions(str(url_data.youtube_url))
         
         # Parse captions
-        transcript, speakers = parse_captions(vtt_file)
+        try:
+            transcript, speakers = parse_captions(vtt_file)
+        except Exception as e:
+            logger.error(f"Error parsing captions: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "message": "Failed to parse video captions. The captions might be in an unsupported format.",
+                    "error_type": "parse_error"
+                }
+            )
         
         # Extract video ID for filename
         video_id = extract_video_id(str(url_data.youtube_url))
         
         # Save transcript to file
-        transcript_file = save_transcript_to_file(transcript, video_title, video_id)
+        try:
+            transcript_file = save_transcript_to_file(transcript, video_title, video_id)
+        except Exception as e:
+            logger.error(f"Error saving transcript: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "message": "Failed to save the transcript. Please try again.",
+                    "error_type": "save_error"
+                }
+            )
         
         # Clean up the temporary VTT file
         try:
@@ -300,9 +421,90 @@ async def ingest_video(url_data: YouTubeURL):
             speakers=speakers,
             transcript_file=transcript_file
         )
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logger.error(f"Error processing video: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "An unexpected error occurred. Please try again later.",
+                "error_type": "server_error"
+            }
+        )
+
+# Add new endpoint for demo videos
+@app.get("/demo-videos")
+async def get_demo_videos():
+    """Get list of available demo videos."""
+    return {
+        "videos": [
+            {
+                "id": video_id,
+                "url": info["url"],
+                "title": info["title"],
+                "description": info["description"]
+            }
+            for video_id, info in DEMO_VIDEOS.items()
+        ]
+    }
+
+@app.get("/demo/{video_id}")
+async def get_demo_video(video_id: str):
+    """Get cached transcript for a demo video."""
+    if video_id not in DEMO_VIDEOS:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "Demo video not found",
+                "error_type": "demo_not_found"
+            }
+        )
+    
+    try:
+        # Read the cached transcript files
+        transcript_file = f"transcripts/{video_id}_transcript.txt"
+        plain_transcript_file = f"transcripts/{video_id}_notimestamp.txt"
+        
+        if not os.path.exists(transcript_file) or not os.path.exists(plain_transcript_file):
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "message": "Demo video transcript not found in cache",
+                    "error_type": "cache_miss"
+                }
+            )
+        
+        with open(transcript_file, 'r', encoding='utf-8') as f:
+            transcript = f.read()
+        
+        with open(plain_transcript_file, 'r', encoding='utf-8') as f:
+            plain_transcript = f.read()
+        
+        # Extract video title from transcript
+        video_title = DEMO_VIDEOS[video_id]["title"]
+        
+        # Chunk the transcript
+        chunks = chunk_text(transcript)
+        
+        return TranscriptResponse(
+            video_title=video_title,
+            transcript=transcript,
+            chunks=chunks,
+            speakers=[],  # Demo videos don't need speaker info
+            transcript_file=transcript_file,
+            plain_transcript=plain_transcript  # Add plain transcript to response
+        )
+        
+    except Exception as e:
+        logger.error(f"Error retrieving demo video {video_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "Error retrieving demo video transcript",
+                "error_type": "server_error"
+            }
+        )
 
 if __name__ == "__main__":
     import uvicorn
