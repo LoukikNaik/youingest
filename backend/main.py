@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from functools import lru_cache
 import asyncio
 from pathlib import Path
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -83,6 +84,7 @@ async def startup_event():
 
 class YouTubeURL(BaseModel):
     youtube_url: HttpUrl
+    cookies: Optional[List[Dict[str, str]]] = None
 
 class TranscriptResponse(BaseModel):
     video_title: str
@@ -103,7 +105,7 @@ def format_timestamp(seconds: float) -> str:
     """Format seconds into HH:MM:SS format."""
     return str(timedelta(seconds=int(seconds)))
 
-def download_captions(url: str, is_demo: bool = False) -> tuple[str, str]:
+def download_captions(url: str, cookies: Optional[List[Dict[str, str]]] = None, is_demo: bool = False) -> tuple[str, str]:
     """Download video captions and return video title and captions file path.
     If is_demo is True, save the transcripts to files."""
     ydl_opts = {
@@ -114,7 +116,19 @@ def download_captions(url: str, is_demo: bool = False) -> tuple[str, str]:
         'outtmpl': '%(title)s.%(ext)s',
         'quiet': False,
         'no_warnings': False,
+        'extract_flat': False,
+        'ignoreerrors': True,
+        'no_check_certificate': True,
+        'prefer_insecure': True,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
     }
+    
+    # Add cookies if provided
+    if cookies:
+        cookie_string = '; '.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies])
+        ydl_opts['http_headers']['Cookie'] = cookie_string
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -149,7 +163,18 @@ def download_captions(url: str, is_demo: bool = False) -> tuple[str, str]:
                         break
             
             if not os.path.exists(subtitle_file):
-                raise YouTubeError("No subtitles found for this video. The video might not have English captions.", "no_subtitles")
+                # Try to get subtitles directly from info
+                if 'subtitles' in info and 'en' in info['subtitles']:
+                    subtitle_url = info['subtitles']['en'][0]['url']
+                    response = requests.get(subtitle_url)
+                    if response.status_code == 200:
+                        subtitle_file = f"{base_filename}.en.vtt"
+                        with open(subtitle_file, 'w', encoding='utf-8') as f:
+                            f.write(response.text)
+                    else:
+                        raise YouTubeError("No subtitles found for this video. The video might not have English captions.", "no_subtitles")
+                else:
+                    raise YouTubeError("No subtitles found for this video. The video might not have English captions.", "no_subtitles")
             
             logger.info(f"Found subtitle file: {subtitle_file}")
             return video_title, subtitle_file
@@ -374,8 +399,12 @@ def extract_video_id(url: str) -> str:
 async def ingest_video(url_data: YouTubeURL):
     """Process YouTube video and return cleaned transcript without saving files."""
     try:
-        # Download captions with is_demo=False
-        video_title, vtt_file = download_captions(str(url_data.youtube_url), is_demo=False)
+        # Download captions with cookies
+        video_title, vtt_file = download_captions(
+            str(url_data.youtube_url),
+            cookies=url_data.cookies,
+            is_demo=False
+        )
         
         # Parse captions
         try:

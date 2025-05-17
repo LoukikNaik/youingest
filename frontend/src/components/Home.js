@@ -8,6 +8,9 @@ import Footer from './Footer';
 import ErrorDisplay from './ErrorDisplay';
 import TranscriptDisplay from './TranscriptDisplay';
 
+// Configure axios defaults
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
+
 function Home() {
   const [searchParams] = useSearchParams();
   const videoId = searchParams.get('v');
@@ -83,7 +86,9 @@ function Home() {
     setTranscriptData(null);
 
     try {
-      const videoId = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/)?.[1];
+      // Extract video ID from URL, handling additional parameters
+      const urlObj = new URL(url);
+      const videoId = urlObj.searchParams.get('v');
       if (!videoId) {
         throw {
           message: 'Please enter a valid YouTube URL',
@@ -91,8 +96,19 @@ function Home() {
         };
       }
 
+      // Get all cookies from the current domain
+      const cookies = document.cookie.split(';').map(cookie => {
+        const [name, value] = cookie.trim().split('=');
+        return { name, value };
+      });
+
       const response = await axios.post(`${config.backendUrl}/ingest`, {
-        youtube_url: url
+        youtube_url: `https://www.youtube.com/watch?v=${videoId}`,
+        cookies: cookies
+      }, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        }
       });
       
       setTranscriptData(response.data);
