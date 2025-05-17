@@ -503,14 +503,8 @@ function App() {
       const response = await axios.post(`${config.backendUrl}/ingest`, {
         youtube_url: url
       });
-
-      // Get the plain text transcript
-      const plainTranscriptResponse = await axios.get(`${config.backendUrl}/transcripts/${videoId}_notimestamp.txt`);
       
-      setTranscriptData({
-        ...response.data,
-        plain_transcript: plainTranscriptResponse.data
-      });
+      setTranscriptData(response.data);
     } catch (err) {
       if (err.response?.data) {
         setError(err.response.data);
