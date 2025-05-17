@@ -59,12 +59,18 @@ async def startup_event():
         try:
             # Check if already cached
             transcript_file = f"transcripts/{video_id}_transcript.txt"
-            if not os.path.exists(transcript_file):
+            plain_transcript_file = f"transcripts/{video_id}_notimestamp.txt"
+            
+            # Only process if either file is missing
+            if not os.path.exists(transcript_file) or not os.path.exists(plain_transcript_file):
                 logger.info(f"Caching demo video: {video_info['title']}")
                 # Download and process the video
                 video_title, vtt_file = download_captions(video_info['url'])
                 transcript, speakers = parse_captions(vtt_file)
+                
+                # Save both timestamped and plain text versions
                 save_transcript_to_file(transcript, video_title, video_id)
+                
                 # Clean up VTT file
                 try:
                     os.remove(vtt_file)
@@ -84,6 +90,7 @@ class TranscriptResponse(BaseModel):
     chunks: List[str]
     speakers: List[str]
     transcript_file: str  # Path to the saved transcript file
+    plain_transcript: str  # Add plain transcript to response
 
 class YouTubeError(Exception):
     """Custom exception for YouTube-related errors"""
@@ -179,6 +186,13 @@ def create_non_timestamp_transcript(txt_file: str, output_file: str):
     with open(txt_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
     
+    # Extract video title from the first line
+    video_title = None
+    for line in lines:
+        if line.startswith('Transcript for:'):
+            video_title = line.replace('Transcript for:', '').strip()
+            break
+    
     # Extract only the text lines (skip header and timestamps)
     text_blocks = []
     current_block = []
@@ -212,8 +226,16 @@ def create_non_timestamp_transcript(txt_file: str, output_file: str):
         result.extend(block_words[overlap:])
         prev_words = result[-len(block_words):] if block_words else prev_words
     
+    # Format the plain text transcript with title
+    formatted_lines = []
+    if video_title:
+        formatted_lines.append(f"Plain Text Transcript for: {video_title}")
+        formatted_lines.append("=" * (len(video_title) + 25))  # Longer line for "Plain Text Transcript for:"
+        formatted_lines.append("")
+    formatted_lines.append(' '.join(result))
+    
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(' '.join(result))
+        f.write('\n'.join(formatted_lines))
 
 def save_transcript_to_file(transcript: str, video_title: str, video_id: str) -> str:
     """Save formatted transcript to a text file and also create a non-timestamped version."""
@@ -470,7 +492,8 @@ async def get_demo_video(video_id: str):
             transcript=transcript,
             chunks=chunks,
             speakers=[],  # Demo videos don't need speaker info
-            transcript_file=transcript_file
+            transcript_file=transcript_file,
+            plain_transcript=plain_transcript  # Add plain transcript to response
         )
         
     except Exception as e:

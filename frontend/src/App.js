@@ -521,7 +521,10 @@ function App() {
 
     try {
       const response = await axios.get(`http://localhost:8000/demo/${videoId}`);
-      setTranscriptData(response.data);
+      setTranscriptData({
+        ...response.data,
+        plain_transcript: response.data.plain_transcript  // Use plain transcript from response
+      });
     } catch (err) {
       if (err.response?.data) {
         setError(err.response.data);
@@ -657,7 +660,7 @@ function App() {
             </div>
 
             {/* Transcript Display with fixed height container */}
-            <div className="min-h-[800px] transition-all duration-300 ease-in-out">
+            <div className=" transition-all duration-300 ease-in-out">
               {transcriptData && (
                 <TranscriptDisplay transcriptData={transcriptData} />
               )}
