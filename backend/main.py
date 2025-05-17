@@ -64,8 +64,8 @@ async def startup_event():
             # Only process if either file is missing
             if not os.path.exists(transcript_file) or not os.path.exists(plain_transcript_file):
                 logger.info(f"Caching demo video: {video_info['title']}")
-                # Download and process the video
-                video_title, vtt_file = download_captions(video_info['url'])
+                # Download and process the video with is_demo=True
+                video_title, vtt_file = download_captions(video_info['url'], is_demo=True)
                 transcript, speakers = parse_captions(vtt_file)
                 
                 # Save both timestamped and plain text versions
@@ -103,8 +103,9 @@ def format_timestamp(seconds: float) -> str:
     """Format seconds into HH:MM:SS format."""
     return str(timedelta(seconds=int(seconds)))
 
-def download_captions(url: str) -> tuple[str, str]:
-    """Download video captions and return video title and captions file path."""
+def download_captions(url: str, is_demo: bool = False) -> tuple[str, str]:
+    """Download video captions and return video title and captions file path.
+    If is_demo is True, save the transcripts to files."""
     ydl_opts = {
         'writesubtitles': True,
         'writeautomaticsub': True,
@@ -371,10 +372,10 @@ def extract_video_id(url: str) -> str:
 
 @app.post("/ingest", response_model=TranscriptResponse)
 async def ingest_video(url_data: YouTubeURL):
-    """Process YouTube video and return cleaned transcript."""
+    """Process YouTube video and return cleaned transcript without saving files."""
     try:
-        # Download captions
-        video_title, vtt_file = download_captions(str(url_data.youtube_url))
+        # Download captions with is_demo=False
+        video_title, vtt_file = download_captions(str(url_data.youtube_url), is_demo=False)
         
         # Parse captions
         try:
@@ -389,27 +390,52 @@ async def ingest_video(url_data: YouTubeURL):
                 }
             )
         
-        # Extract video ID for filename
+        # Extract video ID for filename (only used for response, not for saving)
         video_id = extract_video_id(str(url_data.youtube_url))
         
-        # Save transcript to file
-        try:
-            transcript_file = save_transcript_to_file(transcript, video_title, video_id)
-            plain_transcript_file = f"transcripts/{video_id}_notimestamp.txt"
-            
-            # Read the plain transcript
-            with open(plain_transcript_file, 'r', encoding='utf-8') as f:
-                plain_transcript = f.read()
-                
-        except Exception as e:
-            logger.error(f"Error saving transcript: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail={
-                    "message": "Failed to save the transcript. Please try again.",
-                    "error_type": "save_error"
-                }
-            )
+        # Format transcripts without saving to files
+        formatted_transcript = format_transcript_for_file(transcript, video_title)
+        
+        # Create plain text version without saving
+        text_blocks = []
+        current_block = []
+        for line in formatted_transcript.split('\n'):
+            line = line.strip()
+            if not line or re.match(r'^\[\d{2}:\d{2}:\d{2} - \d{2}:\d{2}:\d{2}\]$', line):
+                if current_block:
+                    text_blocks.append(' '.join(current_block))
+                    current_block = []
+                continue
+            # Skip header lines
+            if line.startswith('Transcript for:') or line.startswith('='):
+                continue
+            current_block.append(line)
+        if current_block:
+            text_blocks.append(' '.join(current_block))
+
+        # Remove repeated phrases between consecutive blocks
+        result = []
+        prev_words = []
+        for block in text_blocks:
+            block_words = block.split()
+            # Find overlap
+            overlap = 0
+            max_overlap = min(len(prev_words), len(block_words))
+            for i in range(max_overlap, 0, -1):
+                if prev_words[-i:] == block_words[:i]:
+                    overlap = i
+                    break
+            # Add only the non-overlapping part
+            result.extend(block_words[overlap:])
+            prev_words = result[-len(block_words):] if block_words else prev_words
+
+        # Format plain text transcript
+        plain_transcript_lines = []
+        plain_transcript_lines.append(f"Plain Text Transcript for: {video_title}")
+        plain_transcript_lines.append("=" * (len(video_title) + 25))
+        plain_transcript_lines.append("")
+        plain_transcript_lines.append(' '.join(result))
+        plain_transcript = '\n'.join(plain_transcript_lines)
         
         # Clean up the temporary VTT file
         try:
@@ -422,10 +448,10 @@ async def ingest_video(url_data: YouTubeURL):
         
         return TranscriptResponse(
             video_title=video_title,
-            transcript=transcript,
+            transcript=formatted_transcript,
             chunks=chunks,
             speakers=speakers,
-            transcript_file=transcript_file,
+            transcript_file="",  # Empty string since we're not saving files
             plain_transcript=plain_transcript
         )
     except HTTPException as he:
