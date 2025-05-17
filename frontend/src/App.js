@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import config from './config';
 
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 // Add theme context
 const ThemeContext = React.createContext();
 
@@ -452,15 +454,30 @@ function App() {
 
   const [demoVideos, setDemoVideos] = useState([]);
   const [loadingDemo, setLoadingDemo] = useState(false);
+  const [loadingDemoVideos, setLoadingDemoVideos] = useState(true);
 
   // Add useEffect to fetch demo videos
   useEffect(() => {
     const fetchDemoVideos = async () => {
+      setLoadingDemoVideos(true);
       try {
-        const response = await axios.get('http://localhost:8000/demo-videos');
-        setDemoVideos(response.data.videos);
+        console.log('Fetching demo videos from:', `${config.backendUrl}/demo-videos`);
+        const response = await axios.get(`${config.backendUrl}/demo-videos`);
+        console.log('Demo videos response:', response.data);
+        if (response.data && response.data.videos) {
+          setDemoVideos(response.data.videos);
+        } else {
+          console.error('Invalid demo videos response format:', response.data);
+          setDemoVideos([]);
+        }
       } catch (err) {
         console.error('Error fetching demo videos:', err);
+        if (err.response) {
+          console.error('Error response:', err.response.data);
+        }
+        setDemoVideos([]);
+      } finally {
+        setLoadingDemoVideos(false);
       }
     };
     fetchDemoVideos();
@@ -483,12 +500,12 @@ function App() {
       }
 
       // Get the timestamped transcript
-      const response = await axios.post('http://localhost:8000/ingest', {
+      const response = await axios.post(`${config.backendUrl}/ingest`, {
         youtube_url: url
       });
 
       // Get the plain text transcript
-      const plainTranscriptResponse = await axios.get(`http://localhost:8000/transcripts/${videoId}_notimestamp.txt`);
+      const plainTranscriptResponse = await axios.get(`${config.backendUrl}/transcripts/${videoId}_notimestamp.txt`);
       
       setTranscriptData({
         ...response.data,
@@ -520,7 +537,7 @@ function App() {
     setUrl('');  // Clear the URL input
 
     try {
-      const response = await axios.get(`http://localhost:8000/demo/${videoId}`);
+      const response = await axios.get(`${config.backendUrl}/demo/${videoId}`);
       setTranscriptData({
         ...response.data,
         plain_transcript: response.data.plain_transcript  // Use plain transcript from response
@@ -615,47 +632,65 @@ function App() {
                 Try with Demo Videos
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {demoVideos.map((video) => (
-                  <button
-                    key={video.id}
-                    onClick={() => handleDemoClick(video.id)}
-                    disabled={loadingDemo}
-                    className={`group p-6 rounded-xl border backdrop-blur-sm text-left transition-all duration-200 hover:scale-105
-                      ${theme === 'dark'
-                        ? 'bg-gray-800/50 border-gray-700 hover:bg-gray-700/50'
-                        : 'bg-white/50 border-gray-200 hover:bg-gray-50/50'}
-                      ${loadingDemo ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="flex items-start space-x-4">
-                      <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center
-                        ${theme === 'dark' ? 'bg-sky-500/20' : 'bg-sky-100'}`}>
-                        <i className={`fas fa-video text-xl ${theme === 'dark' ? 'text-sky-400' : 'text-sky-600'}`}></i>
+                {loadingDemoVideos ? (
+                  <div className={`col-span-3 text-center py-8 rounded-xl border
+                    ${theme === 'dark' 
+                      ? 'bg-gray-800/50 border-gray-700 text-gray-400' 
+                      : 'bg-white/50 border-gray-200 text-gray-600'}`}>
+                    <i className="fas fa-spinner fa-spin text-2xl mb-3"></i>
+                    <p>Loading demo videos...</p>
+                  </div>
+                ) : demoVideos && demoVideos.length > 0 ? (
+                  demoVideos.map((video) => (
+                    <button
+                      key={video.id}
+                      onClick={() => handleDemoClick(video.id)}
+                      disabled={loadingDemo}
+                      className={`group p-6 rounded-xl border backdrop-blur-sm text-left transition-all duration-200 hover:scale-105
+                        ${theme === 'dark'
+                          ? 'bg-gray-800/50 border-gray-700 hover:bg-gray-700/50'
+                          : 'bg-white/50 border-gray-200 hover:bg-gray-50/50'}
+                        ${loadingDemo ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="flex items-start space-x-4">
+                        <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center
+                          ${theme === 'dark' ? 'bg-sky-500/20' : 'bg-sky-100'}`}>
+                          <i className={`fas fa-video text-xl ${theme === 'dark' ? 'text-sky-400' : 'text-sky-600'}`}></i>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className={`font-semibold mb-1 group-hover:text-sky-500 transition-colors duration-200
+                            ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
+                            {video.title}
+                          </h3>
+                          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {video.description}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className={`font-semibold mb-1 group-hover:text-sky-500 transition-colors duration-200
-                          ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
-                          {video.title}
-                        </h3>
-                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {video.description}
-                        </p>
+                      <div className="mt-4 flex items-center text-sm text-sky-500">
+                        {loadingDemo ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            <span>Click to try</span>
+                            <i className="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-200"></i>
+                          </>
+                        )}
                       </div>
-                    </div>
-                    <div className="mt-4 flex items-center text-sm text-sky-500">
-                      {loadingDemo ? (
-                        <>
-                          <i className="fas fa-spinner fa-spin mr-2"></i>
-                          Loading...
-                        </>
-                      ) : (
-                        <>
-                          <span>Click to try</span>
-                          <i className="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-200"></i>
-                        </>
-                      )}
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))
+                ) : (
+                  <div className={`col-span-3 text-center py-8 rounded-xl border
+                    ${theme === 'dark' 
+                      ? 'bg-gray-800/50 border-gray-700 text-gray-400' 
+                      : 'bg-white/50 border-gray-200 text-gray-600'}`}>
+                    <i className="fas fa-exclamation-circle text-2xl mb-3"></i>
+                    <p>No demo videos available</p>
+                  </div>
+                )}
               </div>
             </div>
 
