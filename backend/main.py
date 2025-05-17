@@ -395,6 +395,12 @@ async def ingest_video(url_data: YouTubeURL):
         # Save transcript to file
         try:
             transcript_file = save_transcript_to_file(transcript, video_title, video_id)
+            plain_transcript_file = f"transcripts/{video_id}_notimestamp.txt"
+            
+            # Read the plain transcript
+            with open(plain_transcript_file, 'r', encoding='utf-8') as f:
+                plain_transcript = f.read()
+                
         except Exception as e:
             logger.error(f"Error saving transcript: {str(e)}")
             raise HTTPException(
@@ -419,7 +425,8 @@ async def ingest_video(url_data: YouTubeURL):
             transcript=transcript,
             chunks=chunks,
             speakers=speakers,
-            transcript_file=transcript_file
+            transcript_file=transcript_file,
+            plain_transcript=plain_transcript
         )
     except HTTPException as he:
         raise he

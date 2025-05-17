@@ -9,3 +9,4 @@ backend/transcripts/*
 !backend/transcripts/neural_networks_*
 !backend/transcripts/quantum_mechanics_*
 !backend/transcripts/misunderstood_concept_*
+frontend/build/

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import config from './config';
 
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 // Add theme context
 const ThemeContext = React.createContext();
 
@@ -44,21 +46,21 @@ function Header() {
   
   return (
     <header className={`bg-gradient-to-r from-sky-600 via-sky-700 to-sky-800 text-white shadow-xl ${theme === 'dark' ? 'dark:from-gray-900 dark:via-gray-800 dark:to-gray-900' : ''}`}>
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-16">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
         <div className="text-center max-w-5xl mx-auto">
-          <h1 className="text-7xl font-bold tracking-tight flex items-center justify-center mb-6">
-            <i className="fas fa-closed-captioning mr-4 text-sky-300"></i>
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight flex items-center justify-center mb-4 sm:mb-6">
+            <i className="fas fa-closed-captioning mr-2 sm:mr-4 text-sky-300"></i>
             <span className="airbnb-gradient-text">YouIngest</span>
           </h1>
-          <p className="text-2xl font-medium tracking-wide text-sky-100 mb-12">
+          <p className="text-lg sm:text-xl lg:text-2xl font-medium tracking-wide text-sky-100 mb-8 sm:mb-12">
             Transform YouTube videos into LLM-friendly transcripts
           </p>
-          <div className={`bg-white/10 backdrop-blur-sm rounded-2xl p-10 shadow-lg border border-white/20 ${theme === 'dark' ? 'dark:bg-gray-800/50 dark:border-gray-700/50' : ''}`}>
-            <h2 className="text-3xl font-semibold mb-8 flex items-center justify-center text-sky-100">
-              <i className="fas fa-magic mr-3 text-sky-300"></i>
+          <div className={`bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-6 sm:p-8 lg:p-10 shadow-lg border border-white/20 ${theme === 'dark' ? 'dark:bg-gray-800/50 dark:border-gray-700/50' : ''}`}>
+            <h2 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 flex items-center justify-center text-sky-100">
+              <i className="fas fa-magic mr-2 sm:mr-3 text-sky-300"></i>
               How It Works
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-left">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 text-left">
               <div className="flex items-start space-x-3 group">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                   <i className="fas fa-link text-white"></i>
@@ -183,14 +185,14 @@ function TranscriptDisplay({ transcriptData }) {
   return (
     <div 
       ref={transcriptRef}
-      className={`mt-12 rounded-2xl shadow-xl p-10 border transition-all duration-300 ease-in-out
+      className={`mt-8 sm:mt-12 rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 lg:p-10 border transition-all duration-300 ease-in-out
         ${theme === 'dark' 
           ? 'bg-gray-800 border-gray-700' 
           : 'bg-white border-gray-100'}`}
     >
-      <div className="mb-10">
-        <h2 className="text-3xl font-bold mb-2 flex items-center group">
-          <i className={`fas fa-video mr-4 flex-shrink-0 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'}`}></i>
+      <div className="mb-6 sm:mb-10">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center group">
+          <i className={`fas fa-video mr-3 flex-shrink-0 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'}`}></i>
           <span className={`truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
             {transcriptData.video_title}
           </span>
@@ -198,13 +200,13 @@ function TranscriptDisplay({ transcriptData }) {
         <div className="h-1 w-20 bg-primary-500 rounded-full mt-2"></div>
       </div>
 
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
           <div className={`flex items-center rounded-full p-1 shadow-inner w-full sm:w-auto
             ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>
             <button
               onClick={() => setShowTimestamped(true)}
-              className={`px-6 py-2 rounded-full text-sm font-medium flex items-center flex-1 sm:flex-none justify-center
+              className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium flex items-center flex-1 sm:flex-none justify-center
                 ${showTimestamped
                   ? theme === 'dark'
                     ? 'bg-gray-600 text-primary-300 shadow-sm'
@@ -218,7 +220,7 @@ function TranscriptDisplay({ transcriptData }) {
             </button>
             <button
               onClick={() => setShowTimestamped(false)}
-              className={`px-6 py-2 rounded-full text-sm font-medium flex items-center flex-1 sm:flex-none justify-center
+              className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium flex items-center flex-1 sm:flex-none justify-center
                 ${!showTimestamped
                   ? theme === 'dark'
                     ? 'bg-gray-600 text-primary-300 shadow-sm'
@@ -241,7 +243,7 @@ function TranscriptDisplay({ transcriptData }) {
       <div className="relative group">
         <div className={`absolute top-0 left-0 right-0 h-16 bg-gradient-to-b z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200
           ${theme === 'dark' ? 'from-gray-800 to-transparent' : 'from-white to-transparent'}`}></div>
-        <div className={`prose prose-lg max-w-none rounded-xl p-8 border h-[600px] overflow-y-auto relative scrollbar-thin transition-colors duration-200
+        <div className={`prose prose-sm sm:prose-base lg:prose-lg max-w-none rounded-xl p-4 sm:p-6 lg:p-8 border h-[400px] sm:h-[500px] lg:h-[600px] overflow-y-auto relative scrollbar-thin transition-colors duration-200
           ${theme === 'dark'
             ? 'bg-gray-900 border-gray-700 prose-invert'
             : 'bg-gray-50 border-gray-100'}`}>
@@ -251,11 +253,11 @@ function TranscriptDisplay({ transcriptData }) {
               return (
                 <p
                   key={index}
-                  className={`mb-3 font-mono transition-colors duration-200
+                  className={`mb-2 sm:mb-3 font-mono text-sm sm:text-base transition-colors duration-200
                     ${isTimestamp
                       ? theme === 'dark'
-                        ? 'text-primary-300 font-medium bg-gray-800 px-3 py-2 rounded-lg inline-block'
-                        : 'text-primary-600 font-medium bg-primary-50 px-3 py-2 rounded-lg inline-block'
+                        ? 'text-primary-300 font-medium bg-gray-800 px-2 sm:px-3 py-1 sm:py-2 rounded-lg inline-block'
+                        : 'text-primary-600 font-medium bg-primary-50 px-2 sm:px-3 py-1 sm:py-2 rounded-lg inline-block'
                       : theme === 'dark'
                         ? 'text-gray-300'
                         : 'text-gray-600'}`}
@@ -268,7 +270,7 @@ function TranscriptDisplay({ transcriptData }) {
               );
             })
           ) : (
-            <div className={`whitespace-pre-wrap leading-relaxed font-mono transition-colors duration-200
+            <div className={`whitespace-pre-wrap leading-relaxed font-mono text-sm sm:text-base transition-colors duration-200
               ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
               {transcriptData.plain_transcript}
             </div>
@@ -452,15 +454,30 @@ function App() {
 
   const [demoVideos, setDemoVideos] = useState([]);
   const [loadingDemo, setLoadingDemo] = useState(false);
+  const [loadingDemoVideos, setLoadingDemoVideos] = useState(true);
 
   // Add useEffect to fetch demo videos
   useEffect(() => {
     const fetchDemoVideos = async () => {
+      setLoadingDemoVideos(true);
       try {
-        const response = await axios.get('http://localhost:8000/demo-videos');
-        setDemoVideos(response.data.videos);
+        console.log('Fetching demo videos from:', `${config.backendUrl}/demo-videos`);
+        const response = await axios.get(`${config.backendUrl}/demo-videos`);
+        console.log('Demo videos response:', response.data);
+        if (response.data && response.data.videos) {
+          setDemoVideos(response.data.videos);
+        } else {
+          console.error('Invalid demo videos response format:', response.data);
+          setDemoVideos([]);
+        }
       } catch (err) {
         console.error('Error fetching demo videos:', err);
+        if (err.response) {
+          console.error('Error response:', err.response.data);
+        }
+        setDemoVideos([]);
+      } finally {
+        setLoadingDemoVideos(false);
       }
     };
     fetchDemoVideos();
@@ -483,12 +500,12 @@ function App() {
       }
 
       // Get the timestamped transcript
-      const response = await axios.post('http://localhost:8000/ingest', {
+      const response = await axios.post(`${config.backendUrl}/ingest`, {
         youtube_url: url
       });
 
       // Get the plain text transcript
-      const plainTranscriptResponse = await axios.get(`http://localhost:8000/transcripts/${videoId}_notimestamp.txt`);
+      const plainTranscriptResponse = await axios.get(`${config.backendUrl}/transcripts/${videoId}_notimestamp.txt`);
       
       setTranscriptData({
         ...response.data,
@@ -520,7 +537,7 @@ function App() {
     setUrl('');  // Clear the URL input
 
     try {
-      const response = await axios.get(`http://localhost:8000/demo/${videoId}`);
+      const response = await axios.get(`${config.backendUrl}/demo/${videoId}`);
       setTranscriptData({
         ...response.data,
         plain_transcript: response.data.plain_transcript  // Use plain transcript from response
@@ -547,30 +564,30 @@ function App() {
         <ThemeToggle />
         <Header />
         
-        <main className="flex-grow w-full mx-auto px-6 lg:px-8 py-12">
+        <main className="flex-grow w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="max-w-[1200px] mx-auto">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className={`rounded-2xl shadow-lg p-10 border backdrop-blur-sm
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+              <div className={`rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:p-10 border backdrop-blur-sm
                 ${theme === 'dark'
                   ? 'bg-gray-800/80 border-gray-700'
                   : 'bg-white/80 border-gray-100'}`}>
-                <label htmlFor="youtube-url" className={`block text-2xl font-semibold mb-4 flex items-center
+                <label htmlFor="youtube-url" className={`block text-xl sm:text-2xl font-semibold mb-4 flex items-center
                   ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
-                  <i className="fab fa-youtube mr-3 text-red-500"></i>
+                  <i className="fab fa-youtube mr-2 sm:mr-3 text-red-500"></i>
                   Enter YouTube Video URL
                 </label>
-                <div className="flex flex-col sm:flex-row gap-6">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                   <div className="flex-1">
                     <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                        <i className={`fas fa-link text-2xl
+                      <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none">
+                        <i className={`fas fa-link text-xl sm:text-2xl
                           ${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'}`}></i>
                       </div>
                       <input
                         type="url"
                         name="youtube-url"
                         id="youtube-url"
-                        className={`block w-full pl-14 pr-6 py-5 rounded-xl border text-lg
+                        className={`block w-full pl-12 sm:pl-14 pr-4 sm:pr-6 py-4 sm:py-5 rounded-xl border text-base sm:text-lg
                           ${theme === 'dark'
                             ? 'bg-gray-700/50 border-gray-600 text-gray-100 placeholder-gray-400 focus:border-primary-500 focus:ring-primary-500'
                             : 'bg-white/50 border-gray-300 text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-primary-500'}`}
@@ -584,7 +601,7 @@ function App() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className={`inline-flex items-center justify-center px-10 py-5 border border-transparent text-lg font-semibold rounded-xl shadow-sm hover-transition hover:scale-105
+                    className={`inline-flex items-center justify-center px-6 sm:px-10 py-4 sm:py-5 border border-transparent text-base sm:text-lg font-semibold rounded-xl shadow-sm hover-transition hover:scale-105
                       ${theme === 'dark'
                         ? 'bg-sky-500 hover:bg-sky-600 text-white focus:ring-sky-400'
                         : 'bg-sky-600 hover:bg-sky-700 text-white focus:ring-sky-500'
@@ -592,12 +609,12 @@ function App() {
                   >
                     {loading ? (
                       <>
-                        <i className="fas fa-spinner fa-spin mr-3"></i>
+                        <i className="fas fa-spinner fa-spin mr-2 sm:mr-3"></i>
                         Processing...
                       </>
                     ) : (
                       <>
-                        <i className="fas fa-file-alt mr-3"></i>
+                        <i className="fas fa-file-alt mr-2 sm:mr-3"></i>
                         Ingest
                       </>
                     )}
@@ -607,60 +624,79 @@ function App() {
             </form>
 
             <ErrorDisplay error={error} />
+            
             {/* Demo Videos Section */}
-            <div className="mt-16">
-              <h2 className={`text-2xl font-semibold mb-6 flex items-center
+            <div className="mt-12 sm:mt-16">
+              <h2 className={`text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 flex items-center
                 ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
-                <i className="fas fa-play-circle mr-3 text-sky-500"></i>
+                <i className="fas fa-play-circle mr-2 sm:mr-3 text-sky-500"></i>
                 Try with Demo Videos
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {demoVideos.map((video) => (
-                  <button
-                    key={video.id}
-                    onClick={() => handleDemoClick(video.id)}
-                    disabled={loadingDemo}
-                    className={`group p-6 rounded-xl border backdrop-blur-sm text-left transition-all duration-200 hover:scale-105
-                      ${theme === 'dark'
-                        ? 'bg-gray-800/50 border-gray-700 hover:bg-gray-700/50'
-                        : 'bg-white/50 border-gray-200 hover:bg-gray-50/50'}
-                      ${loadingDemo ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="flex items-start space-x-4">
-                      <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center
-                        ${theme === 'dark' ? 'bg-sky-500/20' : 'bg-sky-100'}`}>
-                        <i className={`fas fa-video text-xl ${theme === 'dark' ? 'text-sky-400' : 'text-sky-600'}`}></i>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {loadingDemoVideos ? (
+                  <div className={`col-span-full text-center py-6 sm:py-8 rounded-xl border
+                    ${theme === 'dark' 
+                      ? 'bg-gray-800/50 border-gray-700 text-gray-400' 
+                      : 'bg-white/50 border-gray-200 text-gray-600'}`}>
+                    <i className="fas fa-spinner fa-spin text-xl sm:text-2xl mb-2 sm:mb-3"></i>
+                    <p>Loading demo videos...</p>
+                  </div>
+                ) : demoVideos && demoVideos.length > 0 ? (
+                  demoVideos.map((video) => (
+                    <button
+                      key={video.id}
+                      onClick={() => handleDemoClick(video.id)}
+                      disabled={loadingDemo}
+                      className={`group p-4 sm:p-6 rounded-xl border backdrop-blur-sm text-left transition-all duration-200 hover:scale-105
+                        ${theme === 'dark'
+                          ? 'bg-gray-800/50 border-gray-700 hover:bg-gray-700/50'
+                          : 'bg-white/50 border-gray-200 hover:bg-gray-50/50'}
+                        ${loadingDemo ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="flex items-start space-x-3 sm:space-x-4">
+                        <div className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center
+                          ${theme === 'dark' ? 'bg-sky-500/20' : 'bg-sky-100'}`}>
+                          <i className={`fas fa-video text-lg sm:text-xl ${theme === 'dark' ? 'text-sky-400' : 'text-sky-600'}`}></i>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className={`font-semibold mb-1 group-hover:text-sky-500 transition-colors duration-200 text-sm sm:text-base
+                            ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
+                            {video.title}
+                          </h3>
+                          <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {video.description}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className={`font-semibold mb-1 group-hover:text-sky-500 transition-colors duration-200
-                          ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
-                          {video.title}
-                        </h3>
-                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {video.description}
-                        </p>
+                      <div className="mt-3 sm:mt-4 flex items-center text-xs sm:text-sm text-sky-500">
+                        {loadingDemo ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            <span>Click to try</span>
+                            <i className="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-200"></i>
+                          </>
+                        )}
                       </div>
-                    </div>
-                    <div className="mt-4 flex items-center text-sm text-sky-500">
-                      {loadingDemo ? (
-                        <>
-                          <i className="fas fa-spinner fa-spin mr-2"></i>
-                          Loading...
-                        </>
-                      ) : (
-                        <>
-                          <span>Click to try</span>
-                          <i className="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-200"></i>
-                        </>
-                      )}
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))
+                ) : (
+                  <div className={`col-span-full text-center py-6 sm:py-8 rounded-xl border
+                    ${theme === 'dark' 
+                      ? 'bg-gray-800/50 border-gray-700 text-gray-400' 
+                      : 'bg-white/50 border-gray-200 text-gray-600'}`}>
+                    <i className="fas fa-exclamation-circle text-xl sm:text-2xl mb-2 sm:mb-3"></i>
+                    <p>No demo videos available</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Transcript Display with fixed height container */}
-            <div className=" transition-all duration-300 ease-in-out">
+            {/* Transcript Display */}
+            <div className="transition-all duration-300 ease-in-out">
               {transcriptData && (
                 <TranscriptDisplay transcriptData={transcriptData} />
               )}
