@@ -90,10 +90,9 @@ function Home() {
       const urlObj = new URL(url);
       const videoId = urlObj.searchParams.get('v');
       if (!videoId) {
-        throw {
-          message: 'Please enter a valid YouTube URL',
-          error_type: 'invalid_url'
-        };
+        const error = new Error('Please enter a valid YouTube URL');
+        error.error_type = 'invalid_url';
+        throw error;
       }
 
       const response = await axios.post(`${config.backendUrl}/ingest`, {
