@@ -96,15 +96,8 @@ function Home() {
         };
       }
 
-      // Get all cookies from the current domain
-      const cookies = document.cookie.split(';').map(cookie => {
-        const [name, value] = cookie.trim().split('=');
-        return { name, value };
-      });
-
       const response = await axios.post(`${config.backendUrl}/ingest`, {
-        youtube_url: `https://www.youtube.com/watch?v=${videoId}`,
-        cookies: cookies
+        youtube_url: `https://www.youtube.com/watch?v=${videoId}`
       }, {
         headers: {
           'ngrok-skip-browser-warning': 'true'

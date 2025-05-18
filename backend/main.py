@@ -84,7 +84,6 @@ async def startup_event():
 
 class YouTubeURL(BaseModel):
     youtube_url: HttpUrl
-    cookies: Optional[List[Dict[str, str]]] = None
 
 class TranscriptResponse(BaseModel):
     video_title: str
@@ -105,7 +104,7 @@ def format_timestamp(seconds: float) -> str:
     """Format seconds into HH:MM:SS format."""
     return str(timedelta(seconds=int(seconds)))
 
-def download_captions(url: str, cookies: Optional[List[Dict[str, str]]] = None, is_demo: bool = False) -> tuple[str, str]:
+def download_captions(url: str, is_demo: bool = False) -> tuple[str, str]:
     """Download video captions and return video title and captions file path.
     If is_demo is True, save the transcripts to files."""
     ydl_opts = {
@@ -124,11 +123,6 @@ def download_captions(url: str, cookies: Optional[List[Dict[str, str]]] = None, 
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
     }
-    
-    # Add cookies if provided
-    if cookies:
-        cookie_string = '; '.join([f"{cookie['name']}={cookie['value']}" for cookie in cookies])
-        ydl_opts['http_headers']['Cookie'] = cookie_string
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -402,7 +396,6 @@ async def ingest_video(url_data: YouTubeURL):
         # Download captions with cookies
         video_title, vtt_file = download_captions(
             str(url_data.youtube_url),
-            cookies=url_data.cookies,
             is_demo=False
         )
         
